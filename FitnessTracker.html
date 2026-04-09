@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ActiveTrack | Fitness Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #10B981; /* Emerald Green */
+            --primary-dark: #059669;
+            --bg-color: #F3F4F6;
+            --card-bg: #FFFFFF;
+            --text-main: #1F2937;
+            --text-light: #6B7280;
+            --danger: #EF4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            display: grid;
+            gap: 20px;
+        }
+
+        h1 {
+            color: var(--text-main);
+            margin-bottom: 5px;
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--text-light);
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        /* Card Styles */
+        .card {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h2 {
+            margin-top: 0;
+            font-size: 1.25rem;
+            color: var(--primary-dark);
+            border-bottom: 2px solid #E5E7EB;
+            padding-bottom: 10px;
+        }
+
+        /* Dashboard Summary Grid */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            background-color: #ECFDF5;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #D1FAE5;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--primary-dark);
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Form Layout */
+        .form-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .input-field {
+            flex: 1;
+            min-width: 150px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            margin-bottom: 5px;
+        }
+
+        input, select {
+            padding: 10px;
+            border: 1px solid #D1D5DB;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+
+        button {
+            padding: 12px 20px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+            width: 100%;
+        }
+
+        button:hover { background-color: var(--primary-dark); }
+        
+        .btn-delete {
+            background-color: var(--danger);
+            padding: 6px 12px;
+            width: auto;
+            font-size: 0.85rem;
+        }
+        .btn-delete:hover { background-color: #DC2626; }
+
+        /* Activity List */
+        .activity-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .activity-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid #E5E7EB;
+        }
+
+        .activity-item:last-child { border-bottom: none; }
+
+        .activity-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .activity-title { font-weight: bold; }
+        .activity-meta { font-size: 0.85rem; color: var(--text-light); }
+        
+        .empty-state { text-align: center; color: var(--text-light); padding: 20px; }
+
+        /* Chart Container */
+        .chart-container {
+            position: relative;
+            height: 250px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div>
+            <h1>ActiveTrack</h1>
+            <p class="subtitle">Your Personal Fitness Dashboard</p>
+        </div>
+
+        <div class="card">
+            <h2>Weekly Progress Dashboard</h2>
+            
+            <div class="summary-grid">
+                <div class="stat-box">
+                    <div class="stat-value" id="totalWorkouts">0</div>
+                    <div class="stat-label">Total Workouts</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="totalMinutes">0</div>
+                    <div class="stat-label">Minutes Active</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="totalCalories">0</div>
+                    <div class="stat-label">Calories Burned</div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="fitnessChart"></canvas>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Log New Activity</h2>
+            <form id="fitnessForm">
+                <div class="form-group">
+                    <div class="input-field">
+                        <label for="date">Date</label>
+                        <input type="date" id="date" required>
+                    </div>
+                    <div class="input-field">
+                        <label for="type">Exercise Type</label>
+                        <select id="type" required>
+                            <option value="Running">Running</option>
+                            <option value="Cycling">Cycling</option>
+                            <option value="Weightlifting">Weightlifting</option>
+                            <option value="Yoga">Yoga</option>
+                            <option value="Walking">Walking</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="input-field">
+                        <label for="duration">Duration (minutes)</label>
+                        <input type="number" id="duration" min="1" placeholder="e.g. 45" required>
+                    </div>
+                    <div class="input-field">
+                        <label for="calories">Calories Burned</label>
+                        <input type="number" id="calories" min="1" placeholder="e.g. 300" required>
+                    </div>
+                </div>
+                <button type="submit">Log Workout</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Recent Activities</h2>
+            <ul class="activity-list" id="activityList">
+                </ul>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. State Management (Local Storage) ---
+        // Fetch existing data from LocalStorage, or start with an empty array if none exists
+        let activities = JSON.parse(localStorage.getItem('fitness_data')) || [];
+        let fitnessChartInstance = null; // Store chart instance to update it safely
+
+        // DOM Elements
+        const form = document.getElementById('fitnessForm');
+        const dateInput = document.getElementById('date');
+        const activityList = document.getElementById('activityList');
+
+        // Set today's date as default in the form
+        dateInput.valueAsDate = new Date();
+
+        // --- 2. Core Functions ---
+
+        // Handle Form Submission
+        form.addEventListener('submit', function(e) {
+            e.preventDefault(); // Prevent page reload
+
+            const newActivity = {
+                id: Date.now(),
+                date: document.getElementById('date').value,
+                type: document.getElementById('type').value,
+                duration: parseInt(document.getElementById('duration').value),
+                calories: parseInt(document.getElementById('calories').value)
+            };
+
+            activities.push(newActivity);
+            saveData();
+            updateUI();
+            form.reset();
+            dateInput.valueAsDate = new Date(); // Reset date to today
+        });
+
+        // Delete an activity
+        function deleteActivity(id) {
+            activities = activities.filter(activity => activity.id !== id);
+            saveData();
+            updateUI();
+        }
+
+        // Save array to LocalStorage
+        function saveData() {
+            localStorage.setItem('fitness_data', JSON.stringify(activities));
+        }
+
+        // --- 3. UI Updating Functions ---
+
+        function updateUI() {
+            renderList();
+            updateDashboardStats();
+            renderChart();
+        }
+
+        function renderList() {
+            activityList.innerHTML = '';
+            
+            if (activities.length === 0) {
+                activityList.innerHTML = '<li class="empty-state">No activities logged yet. Get moving!</li>';
+                return;
+            }
+
+            // Sort activities by date (newest first)
+            const sortedActivities = [...activities].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            sortedActivities.forEach(act => {
+                const li = document.createElement('li');
+                li.className = 'activity-item';
+                li.innerHTML = `
+                    <div class="activity-details">
+                        <span class="activity-title">${act.type}</span>
+                        <span class="activity-meta">${act.date} • ${act.duration} mins • ${act.calories} kcal</span>
+                    </div>
+                    <button class="btn-delete" onclick="deleteActivity(${act.id})">Delete</button>
+                `;
+                activityList.appendChild(li);
+            });
+        }
+
+        function updateDashboardStats() {
+            let totalMins = 0;
+            let totalCals = 0;
+
+            activities.forEach(act => {
+                totalMins += act.duration;
+                totalCals += act.calories;
+            });
+
+            document.getElementById('totalWorkouts').textContent = activities.length;
+            document.getElementById('totalMinutes').textContent = totalMins;
+            document.getElementById('totalCalories').textContent = totalCals;
+        }
+
+        function renderChart() {
+            const ctx = document.getElementById('fitnessChart').getContext('2d');
+            
+            // If a chart already exists, destroy it before making a new one to prevent overlap
+            if (fitnessChartInstance) {
+                fitnessChartInstance.destroy();
+            }
+
+            // Group calories by Date for the chart
+            const caloriesByDate = {};
+            activities.forEach(act => {
+                if (caloriesByDate[act.date]) {
+                    caloriesByDate[act.date] += act.calories;
+                } else {
+                    caloriesByDate[act.date] = act.calories;
+                }
+            });
+
+            // Sort dates chronologically
+            const sortedDates = Object.keys(caloriesByDate).sort((a, b) => new Date(a) - new Date(b));
+            const dataPoints = sortedDates.map(date => caloriesByDate[date]);
+
+            fitnessChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sortedDates,
+                    datasets: [{
+                        label: 'Calories Burned',
+                        data: dataPoints,
+                        backgroundColor: '#10B981',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        // Initialize UI on first load
+        updateUI();
+    </script>
+</body>
+</html>
