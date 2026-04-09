@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flashcard Quiz App</title>
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --bg-color: #F3F4F6;
+            --card-bg: #FFFFFF;
+            --text-main: #1F2937;
+            --text-light: #6B7280;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        /* Flashcard 3D Flip Styles */
+        .card-container {
+            width: 100%;
+            max-width: 500px;
+            height: 300px;
+            perspective: 1000px;
+            margin-bottom: 20px;
+        }
+
+        .flashcard {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+            cursor: pointer;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+        }
+
+        .flashcard.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .card-back {
+            transform: rotateY(180deg);
+            border: 2px solid var(--primary);
+        }
+
+        .card-label {
+            position: absolute;
+            top: 15px;
+            left: 20px;
+            font-size: 0.85rem;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .card-content {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        /* Quiz Controls */
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 40px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            background-color: var(--primary);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        button:disabled {
+            background-color: #9CA3AF;
+            cursor: not-allowed;
+        }
+
+        /* Card Management Section */
+        .management-section {
+            width: 100%;
+            max-width: 500px;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .management-section h3 {
+            margin-top: 0;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        input {
+            padding: 10px;
+            border: 1px solid #D1D5DB;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+
+        .card-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .card-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #E5E7EB;
+        }
+
+        .card-item:last-child {
+            border-bottom: none;
+        }
+
+        .card-item-text {
+            font-size: 0.9rem;
+            flex-grow: 1;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn-small {
+            padding: 5px 10px;
+            font-size: 0.8rem;
+        }
+
+        .btn-danger {
+            background-color: #EF4444;
+        }
+        .btn-danger:hover { background-color: #DC2626; }
+        
+        .btn-edit {
+            background-color: #F59E0B;
+        }
+        .btn-edit:hover { background-color: #D97706; }
+        
+        .empty-state {
+            text-align: center;
+            color: var(--text-light);
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Study Flashcards</h1>
+    <p style="margin-bottom: 20px; color: #6B7280;">Master your concepts</p>
+
+    <div class="card-container">
+        <div class="flashcard" id="flashcard">
+            <div class="card-front">
+                <span class="card-label">Question <span id="cardCounter"></span></span>
+                <div class="card-content" id="questionText">Add some cards to begin!</div>
+            </div>
+            <div class="card-back">
+                <span class="card-label">Answer</span>
+                <div class="card-content" id="answerText"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button id="prevBtn" onclick="prevCard()">&larr; Previous</button>
+        <button id="flipBtn" onclick="toggleFlip()">Show Answer</button>
+        <button id="nextBtn" onclick="nextCard()">Next &rarr;</button>
+    </div>
+
+    <div class="management-section">
+        <h3 id="formTitle">Add New Flashcard</h3>
+        <div class="input-group">
+            <input type="text" id="qInput" placeholder="Enter question..." required>
+            <input type="text" id="aInput" placeholder="Enter answer..." required>
+        </div>
+        <button id="saveBtn" style="width: 100%; margin-bottom: 20px;" onclick="saveCard()">Add Card</button>
+
+        <h3>Your Flashcards</h3>
+        <ul class="card-list" id="cardList">
+            </ul>
+    </div>
+
+    <script>
+        // Initial state with some placeholder data
+        let flashcards = [
+            { id: 1, question: "What does HTML stand for?", answer: "HyperText Markup Language" },
+            { id: 2, question: "What is the difference between let and const in JavaScript?", answer: "'let' allows reassignment, 'const' does not." },
+            { id: 3, question: "What does OOP stand for?", answer: "Object-Oriented Programming" }
+        ];
+
+        let currentIndex = 0;
+        let isFlipped = false;
+        let editingId = null; // Keeps track of whether we are creating or editing
+
+        // DOM Elements
+        const flashcardEl = document.getElementById('flashcard');
+        const questionText = document.getElementById('questionText');
+        const answerText = document.getElementById('answerText');
+        const cardCounter = document.getElementById('cardCounter');
+        const qInput = document.getElementById('qInput');
+        const aInput = document.getElementById('aInput');
+        const saveBtn = document.getElementById('saveBtn');
+        const formTitle = document.getElementById('formTitle');
+        const cardList = document.getElementById('cardList');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const flipBtn = document.getElementById('flipBtn');
+
+        // --- Core Quiz Logic ---
+
+        function updateCardDisplay() {
+            if (flashcards.length === 0) {
+                questionText.textContent = "No cards available. Add one below!";
+                answerText.textContent = "";
+                cardCounter.textContent = "";
+                prevBtn.disabled = true;
+                nextBtn.disabled = true;
+                flipBtn.disabled = true;
+                if (isFlipped) toggleFlip(); // Reset flip state
+                return;
+            }
+
+            const currentCard = flashcards[currentIndex];
+            questionText.textContent = currentCard.question;
+            answerText.textContent = currentCard.answer;
+            cardCounter.textContent = `${currentIndex + 1} / ${flashcards.length}`;
+
+            // Handle button states
+            prevBtn.disabled = currentIndex === 0;
+            nextBtn.disabled = currentIndex === flashcards.length - 1;
+            flipBtn.disabled = false;
+
+            // Always show the front of the new card
+            if (isFlipped) {
+                toggleFlip();
+            }
+        }
+
+        function toggleFlip() {
+            if (flashcards.length === 0) return;
+            isFlipped = !isFlipped;
+            flashcardEl.classList.toggle('flipped');
+            flipBtn.textContent = isFlipped ? "Show Question" : "Show Answer";
+        }
+
+        function nextCard() {
+            if (currentIndex < flashcards.length - 1) {
+                currentIndex++;
+                updateCardDisplay();
+            }
+        }
+
+        function prevCard() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                updateCardDisplay();
+            }
+        }
+
+        // --- CRUD Logic (Create, Read, Update, Delete) ---
+
+        function saveCard() {
+            const qVal = qInput.value.trim();
+            const aVal = aInput.value.trim();
+
+            if (!qVal || !aVal) {
+                alert("Please fill in both the question and answer.");
+                return;
+            }
+
+            if (editingId) {
+                // Update existing card
+                const cardIndex = flashcards.findIndex(c => c.id === editingId);
+                flashcards[cardIndex].question = qVal;
+                flashcards[cardIndex].answer = aVal;
+                
+                // Reset form state
+                editingId = null;
+                saveBtn.textContent = "Add Card";
+                formTitle.textContent = "Add New Flashcard";
+            } else {
+                // Create new card
+                const newCard = {
+                    id: Date.now(), // Generate a unique ID based on timestamp
+                    question: qVal,
+                    answer: aVal
+                };
+                flashcards.push(newCard);
+                
+                // If it's the first card added, set index to 0
+                if (flashcards.length === 1) {
+                    currentIndex = 0;
+                }
+            }
+
+            // Clear inputs and refresh UI
+            qInput.value = '';
+            aInput.value = '';
+            updateCardDisplay();
+            renderCardList();
+        }
+
+        function deleteCard(id) {
+            flashcards = flashcards.filter(card => card.id !== id);
+            
+            // Adjust current index if we deleted the card we are currently viewing
+            if (currentIndex >= flashcards.length && currentIndex > 0) {
+                currentIndex--;
+            }
+            
+            updateCardDisplay();
+            renderCardList();
+            
+            // If we delete a card while editing it, reset the form
+            if (editingId === id) {
+                resetForm();
+            }
+        }
+
+        function startEditMode(id) {
+            const cardToEdit = flashcards.find(card => card.id === id);
+            if (!cardToEdit) return;
+
+            qInput.value = cardToEdit.question;
+            aInput.value = cardToEdit.answer;
+            editingId = id;
+            
+            saveBtn.textContent = "Update Card";
+            formTitle.textContent = "Edit Flashcard";
+            qInput.focus();
+        }
+
+        function resetForm() {
+            qInput.value = '';
+            aInput.value = '';
+            editingId = null;
+            saveBtn.textContent = "Add Card";
+            formTitle.textContent = "Add New Flashcard";
+        }
+
+        function renderCardList() {
+            cardList.innerHTML = '';
+
+            if (flashcards.length === 0) {
+                cardList.innerHTML = '<li class="empty-state">Your deck is empty.</li>';
+                return;
+            }
+
+            flashcards.forEach(card => {
+                const li = document.createElement('li');
+                li.className = 'card-item';
+                
+                // Truncate long text for the management list
+                const shortQ = card.question.length > 30 ? card.question.substring(0, 30) + '...' : card.question;
+
+                li.innerHTML = `
+                    <div class="card-item-text"><strong>Q:</strong> ${shortQ}</div>
+                    <div class="action-btns">
+                        <button class="btn-small btn-edit" onclick="startEditMode(${card.id})">Edit</button>
+                        <button class="btn-small btn-danger" onclick="deleteCard(${card.id})">Delete</button>
+                    </div>
+                `;
+                cardList.appendChild(li);
+            });
+        }
+
+        // --- Initialization ---
+        updateCardDisplay();
+        renderCardList();
+
+        // Allow clicking the card itself to flip
+        flashcardEl.addEventListener('click', toggleFlip);
+    </script>
+</body>
+</html>
